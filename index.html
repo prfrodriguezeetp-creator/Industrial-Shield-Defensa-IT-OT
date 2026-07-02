@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Industrial Shield: IT/OT Defense – Gamificado</title>
+    <style>
+        :root {
+            --bg: #FDFBF7;
+            --blue-pastel: #E3F2FD;
+            --blue-pastel-dark: #BBDEFB;
+            --green-mint: #C8E6C9;
+            --green-mint-dark: #A5D6A7;
+            --red-soft: #FFCDD2;
+            --red-alert: #E53935;
+            --yellow-soft: #FFF9C4;
+            --amber: #FFB300;
+            --gold: #F9A825;
+            --text: #1a1a1a;
+            --text-secondary: #444;
+            --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --card-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.10);
+            --radius: 14px;
+            --radius-sm: 10px;
+            --transition: 0.25s ease;
+            --font-stack: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg);
+            font-family: var(--font-stack);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 10px;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .app-container {
+            width: 100%;
+            max-width: 520px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            padding-bottom: 40px;
+        }
+
+        /* Header y Score */
+        .header {
+            text-align: center;
+            padding: 8px 0 2px;
+        }
+        .header h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: #1a237e;
+            line-height: 1.2;
+        }
+        .header .subtitle {
+            font-size: 0.8rem;
+            color: #5c6bc0;
+            font-weight: 500;
+        }
+        .score-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: #fff;
+            border-radius: 30px;
+            padding: 10px 18px;
+            box-shadow: var(--card-shadow);
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+        .score-icon {
+            font-size: 1.4rem;
+        }
+        .score-value {
+            color: #1a237e;
+            font-size: 1.3rem;
+            min-width: 40px;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+        .score-value.pulse {
+            animation: scorePulse 0.4s ease-out;
+        }
+        @keyframes scorePulse {
+            0%,
+            100% {
+                transform: scale(1);
+            }
+            30% {
+                transform: scale(1.35);
+                color: #f9a825;
+            }
+        }
+
+        /* Dashboard de Misiones */
+        .mission-dashboard {
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 14px 12px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            position: relative;
+        }
+        .phase-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: #888;
+            transition: var(--transition);
+            position: relative;
+            z-index: 1;
+            flex-shrink: 0;
+        }
+        .phase-dot.active {
+            background: #1a237e;
+            color: #fff;
+            box-shadow: 0 0 12px rgba(26, 35, 126, 0.4);
+            animation: dotGlow 1.8s ease-in-out infinite;
+        }
+        .phase-dot.completed {
+            background: #43a047;
+            color: #fff;
+            box-shadow: 0 0 8px rgba(67, 160, 71, 0.4);
+        }
+        @keyframes dotGlow {
+            0%,
+            100% {
+                box-shadow: 0 0 8px rgba(26, 35, 126, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(26, 35, 126, 0.55);
+            }
+        }
+        .phase-connector {
+            width: 28px;
+            height: 3px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+        .phase-connector.done {
+            background: #43a047;
+        }
+        .phase-label-mini {
+            font-size: 0.6rem;
+            color: #999;
+            text-align: center;
+            flex-shrink: 0;
+            max-width: 50px;
+            line-height: 1.2;
+            transition: color 0.3s;
+        }
+        .phase-label-mini.highlight {
+            color: #1a237e;
+            font-weight: 700;
+        }
+
+        /* Contenido de fase */
+        .phase-content {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            animation: fadeSlideIn 0.35s ease;
+        }
+        .phase-content.visible {
+            display: flex;
+        }
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Tickets de Concepto (Fase 1) */
+        .ticket-card {
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--card-shadow);
+            border-left: 5px solid #90caf9;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: var(--transition);
+            position: relative;
+        }
+        .ticket-card.reviewed {
+            border-left-color: #43a047;
+            background: #f5fdf6;
+            opacity: 0.85;
+        }
+        .ticket-card.reviewed::after {
+            content: '✅';
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            font-size: 1.3rem;
+        }
+        .ticket-icon {
+            font-size: 1.8rem;
+        }
+        .ticket-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #222;
+        }
+        .ticket-body {
+            font-size: 0.78rem;
+            color: #555;
+            line-height: 1.45;
+        }
+        .ticket-highlight {
+            background: #FFF9C4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: #5d4037;
+        }
+        .btn-ticket {
+            align-self: flex-end;
+            padding: 10px 18px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            background: #1a237e;
+            color: #fff;
+            letter-spacing: 0.3px;
+            transition: var(--transition);
+            font-family: var(--font-stack);
+        }
+        .btn-ticket:active {
+            transform: scale(0.95);
+        }
+        .btn-ticket:disabled {
+            background: #bdbdbd;
+            cursor: not-allowed;
+        }
+        .btn-continue {
+            width: 100%;
+            padding: 14px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            background: #43a047;
+            color: #fff;
+            letter-spacing: 0.3px;
+            transition: var(--transition);
+            font-family: var(--font-stack);
+            display: none;
+            box-shadow: 0 4px 14px rgba(67, 160, 71, 0.35);
+        }
+        .btn-continue.show {
+            display: block;
+            animation: fadeSlideIn 0.4s ease;
+        }
+        .btn-continue:active {
+            transform: scale(0.96);
+        }
+
+        /* Fase 2 – Mini-juego Deprovisioning */
+        .timer-container {
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            box-shadow: var(--card-shadow);
+            text-align: center;
+        }
+        .timer-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #777;
+            margin-bottom: 4px;
+        }
+        .timer-bar-outer {
+            height: 10px;
+            background: #e8e8e8;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .timer-bar-inner {
+            height: 100%;
+            width: 100%;
+            background: #43a047;
+            border-radius: 6px;
+            transition: width 0.1s linear, background 0.3s ease;
+        }
+        .timer-bar-inner.warning {
+            background: #ff9800;
+        }
+        .timer-bar-inner.danger {
+            background: #e53935;
+        }
+        .timer-digits {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1a237e;
+            margin-top: 2px;
+        }
+        .user-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .user-card {
+            background: #fff;
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: var(--transition);
+            cursor: pointer;
+            border: 2px solid transparent;
+            position: relative;
+        }
+        .user-card:active {
+            transform: scale(0.98);
+        }
+        .user-card.selected-wrong {
+            border-color: #e53935 !important;
+            animation: shake 0.4s ease;
+            background: #fff5f5 !important;
+        }
+        .user-card.correct-flash {
+            border-color: #43a047 !important;
+            background: #e8f5e9 !important;
+            animation: correctPulse 0.5s ease;
+        }
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            20% {
+                transform: translateX(-6px);
+            }
+            40% {
+                transform: translateX(6px);
+            }
+            60% {
+                transform: translateX(-4px);
+            }
+            80% {
+                transform: translateX(4px);
+            }
+        }
+        @keyframes correctPulse {
+            0%,
+            100% {
+                box-shadow: 0 0 0 rgba(67, 160, 71, 0);
+            }
+            50% {
+                box-shadow: 0 0 22px rgba(67, 160, 71, 0.5);
+            }
+        }
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e3f2fd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+        .user-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .user-name {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #222;
+        }
+        .user-role {
+            font-size: 0.7rem;
+            color: #777;
+        }
+        .user-status {
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 10px;
+            flex-shrink: 0;
+        }
+        .status-active {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+        .status-suspicious {
+            background: #fff9c4;
+            color: #f57f17;
+        }
+        .btn-revoke-small {
+            flex-shrink: 0;
+            padding: 8px 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            background: #e53935;
+            color: #fff;
+            transition: var(--transition);
+            font-family: var(--font-stack);
+            letter-spacing: 0.2px;
+        }
+        .btn-revoke-small:active {
+            transform: scale(0.9);
+        }
+        .btn-revoke-small:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .phase2-feedback {
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 8px;
+            border-radius: 8px;
+            display: none;
+        }
+        .phase2-feedback.show {
+            display: block;
+            animation: fadeSlideIn 0.3s ease;
+        }
+        .phase2-feedback.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .phase2-feedback.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        /* Fase 3 – Desafío Final */
+        .network-diagram-compact {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 12px 10px;
+            box-shadow: var(--card-shadow);
+            flex-wrap: wrap;
+        }
+        .zone-card-sm {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 8px;
+            border-radius: var(--radius-sm);
+            min-width: 75px;
+            flex: 1;
+            text-align: center;
+            transition: var(--transition);
+        }
+        .zone-it-sm {
+            background: var(--blue-pastel);
+            border: 2px solid var(--blue-pastel-dark);
+        }
+        .zone-ot-sm {
+            background: var(--green-mint);
+            border: 2px solid var(--green-mint-dark);
+            transition: transform 0.08s ease, background 0.3s, border-color 0.3s;
+        }
+        .zone-ot-sm.kinetic-shake {
+            animation: kineticShake 0.1s infinite;
+            background: #ffcdd2 !important;
+            border-color: #e53935 !important;
+            box-shadow: 0 0 18px rgba(229, 57, 53, 0.5);
+        }
+        @keyframes kineticShake {
+            0%,
+            100% {
+                transform: translateX(0) rotate(0);
+            }
+            25% {
+                transform: translateX(-4px) rotate(-1deg);
+            }
+            50% {
+                transform: translateX(4px) rotate(1deg);
+            }
+            75% {
+                transform: translateX(-3px) rotate(-0.5deg);
+            }
+        }
+        .zone-icon-sm {
+            font-size: 1.6rem;
+        }
+        .zone-label-sm {
+            font-weight: 700;
+            font-size: 0.7rem;
+        }
+        .connector-sm {
+            font-size: 1.4rem;
+            color: #90a4ae;
+            flex-shrink: 0;
+        }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 4px 0;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4caf50;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+        .status-dot.warning {
+            background: #ff9800;
+            box-shadow: 0 0 8px rgba(255, 152, 0, 0.6);
+            animation: dotPulse 0.5s infinite;
+        }
+        .status-dot.danger {
+            background: #e53935;
+            box-shadow: 0 0 12px rgba(229, 57, 53, 0.7);
+            animation: dotPulse 0.3s infinite;
+        }
+        .status-dot.success-flash {
+            background: #00c853;
+            box-shadow: 0 0 14px rgba(0, 200, 83, 0.8);
+            animation: dotPulse 0.4s 3;
+        }
+        @keyframes dotPulse {
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.5);
+                opacity: 0.4;
+            }
+        }
+        .attack-bar-container {
+            background: #fff;
+            border-radius: 20px;
+            padding: 10px 14px;
+            box-shadow: var(--card-shadow);
+        }
+        .attack-bar-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 4px;
+            text-align: center;
+        }
+        .attack-bar-outer {
+            position: relative;
+            height: 18px;
+            background: #e8e8e8;
+            border-radius: 10px;
+            overflow: visible;
+        }
+        .attack-bar-inner {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #ff9800, #f44336);
+            border-radius: 10px;
+            transition: width 0.06s linear;
+        }
+        .attack-bar-inner.defended {
+            background: linear-gradient(90deg, #43a047, #66bb6a) !important;
+            transition: width 0.3s ease, background 0.3s ease;
+        }
+        .defense-card {
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-left: 5px solid #e0e0e0;
+            transition: var(--transition);
+        }
+        .defense-card.layer-1 {
+            border-left-color: #90caf9;
+        }
+        .defense-card.layer-2 {
+            border-left-color: #81c784;
+        }
+        .defense-card.layer-3 {
+            border-left-color: #ce93d8;
+        }
+        .defense-card.defense-active.layer-1 {
+            border-left-color: #1e88e5;
+            background: #f5f9ff;
+        }
+        .defense-card.defense-active.layer-2 {
+            border-left-color: #2e7d32;
+            background: #f5fdf6;
+        }
+        .defense-card.defense-active.layer-3 {
+            border-left-color: #7b1fa2;
+            background: #fdf5ff;
+        }
+        .defense-icon {
+            font-size: 1.6rem;
+            flex-shrink: 0;
+        }
+        .defense-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .defense-title {
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .defense-tech {
+            font-size: 0.7rem;
+            color: #777;
+        }
+        .toggle-container {
+            flex-shrink: 0;
+            position: relative;
+            width: 48px;
+            height: 28px;
+        }
+        .toggle-container input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #d5d5d5;
+            border-radius: 28px;
+            transition: var(--transition);
+        }
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: var(--transition);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        input:checked+.toggle-slider {
+            background: #43a047;
+        }
+        input:checked+.toggle-slider::before {
+            transform: translateX(20px);
+        }
+
+        /* Botones generales */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px 20px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            letter-spacing: 0.3px;
+            transition: var(--transition);
+            text-align: center;
+            font-family: var(--font-stack);
+        }
+        .btn-simulate {
+            background: #1a237e;
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(26, 35, 126, 0.3);
+        }
+        .btn-simulate:active {
+            transform: scale(0.96);
+        }
+        .btn-simulate:disabled {
+            background: #9fa8da;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .btn-reset {
+            background: #fff;
+            color: #555;
+            border: 2px solid #ddd;
+        }
+        .btn-reset:active {
+            transform: scale(0.96);
+        }
+
+        /* Resultado */
+        .result-area {
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--card-shadow);
+            text-align: center;
+            display: none;
+            animation: fadeSlideIn 0.4s ease;
+        }
+        .result-area.visible {
+            display: block;
+        }
+        .result-area.success {
+            border: 2px solid #43a047;
+            background: #f1f8e9;
+        }
+        .result-area.failure {
+            border: 2px solid #e53935;
+            background: #fff5f5;
+        }
+        .result-icon {
+            font-size: 2.6rem;
+        }
+        .result-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin: 4px 0;
+        }
+        .result-detail {
+            font-size: 0.8rem;
+            color: #555;
+            line-height: 1.4;
+        }
+
+        /* Overlay kinético */
+        .kinetic-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(229, 57, 53, 0.2);
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .kinetic-overlay.active {
+            opacity: 1;
+            animation: alertFlash 0.4s ease-in-out 5;
+        }
+        @keyframes alertFlash {
+            0%,
+            100% {
+                background: rgba(229, 57, 53, 0.1);
+            }
+            50% {
+                background: rgba(229, 57, 53, 0.4);
+            }
+        }
+
+        /* Resumen final */
+        .final-summary {
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 18px 16px;
+            box-shadow: var(--card-shadow);
+            border-top: 4px solid #ffb74d;
+            display: none;
+        }
+        .final-summary.visible {
+            display: block;
+            animation: fadeSlideIn 0.5s ease;
+        }
+        .final-summary h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #e65100;
+            margin-bottom: 8px;
+        }
+        .final-summary .score-breakdown {
+            font-size: 0.8rem;
+            color: #555;
+            line-height: 1.6;
+        }
+        .final-summary .concept-item {
+            margin-top: 8px;
+            font-size: 0.78rem;
+            color: #444;
+            line-height: 1.4;
+        }
+        .final-summary .concept-item strong {
+            color: #1a237e;
+        }
+
+        /* Responsive */
+        @media (min-width: 420px) {
+            .header h1 {
+                font-size: 1.55rem;
+            }
+            .ticket-title {
+                font-size: 1rem;
+            }
+            .ticket-body {
+                font-size: 0.82rem;
+            }
+            .defense-title {
+                font-size: 0.9rem;
+            }
+            .user-name {
+                font-size: 0.9rem;
+            }
+            .user-role {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="kinetic-overlay" id="kineticOverlay"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🛡️ Industrial Shield</h1>
+            <p class="subtitle">Defensa IT/OT · Gamificada</p>
+        </div>
+
+        <!-- Barra de puntaje -->
+        <div class="score-bar">
+            <span class="score-icon">🏆</span>
+            <span>Puntaje:</span>
+            <span class="score-value" id="scoreDisplay">0</span>
+            <span>pts</span>
+        </div>
+
+        <!-- Dashboard de Misiones -->
+        <div class="mission-dashboard" id="missionDashboard">
+            <span class="phase-label-mini highlight" id="phaseLabel1">Fase 1<br>Conceptos</span>
+            <div class="phase-dot active" id="phaseDot1">1</div>
+            <div class="phase-connector" id="connector1"></div>
+            <span class="phase-label-mini" id="phaseLabel2">Fase 2<br>Deprovision</span>
+            <div class="phase-dot" id="phaseDot2">2</div>
+            <div class="phase-connector" id="connector2"></div>
+            <span class="phase-label-mini" id="phaseLabel3">Fase 3<br>Defensa</span>
+            <div class="phase-dot" id="phaseDot3">3</div>
+        </div>
+
+        <!-- ========== FASE 1: Tickets de Concepto ========== -->
+        <div class="phase-content visible" id="phase1Content">
+            <div class="ticket-card" id="ticket1">
+                <span class="ticket-icon">🔐</span>
+                <span class="ticket-title">IAM – Gestión de Identidades</span>
+                <span class="ticket-body">
+                    <span class="ticket-highlight">IAM (Identity & Access Management)</span> controla quién accede a qué.
+                    En entornos IT/OT convergentes, cada identidad —operarios, ingenieros, exalumnos— debe gestionarse
+                    con <strong>baja automatizada</strong>. Una identidad no revocada es una <strong>puerta trasera permanente</strong>.
+                </span>
+                <button class="btn-ticket" data-ticket="1">✓ Entendido</button>
+            </div>
+            <div class="ticket-card" id="ticket2">
+                <span class="ticket-icon">👥</span>
+                <span class="ticket-title">RBAC – Control de Acceso Basado en Roles</span>
+                <span class="ticket-body">
+                    <span class="ticket-highlight">RBAC</span> asigna permisos según el rol (operario, supervisor, admin).
+                    El principio de <strong>mínimo privilegio</strong> reduce la superficie de ataque. La <strong>Responsabilidad Compartida</strong>
+                    exige que TI y OT coordinen la asignación y revocación de roles.
+                </span>
+                <button class="btn-ticket" data-ticket="2">✓ Entendido</button>
+            </div>
+            <div class="ticket-card" id="ticket3">
+                <span class="ticket-icon">⚡</span>
+                <span class="ticket-title">Defensa Kinética – Del Bit al Átomo</span>
+                <span class="ticket-body">
+                    Un <span class="ticket-highlight">Ataque Kinético</span> convierte un error lógico en daño físico real.
+                    Sin defensa en profundidad, un atacante puede manipular máquinas CNC, causar destrucción
+                    material y poner vidas en riesgo. <strong>Cada capa de defensa cuenta.</strong>
+                </span>
+                <button class="btn-ticket" data-ticket="3">✓ Entendido</button>
+            </div>
+            <button class="btn-continue" id="btnContinuePhase1">▶ Continuar a Fase 2</button>
+        </div>
+
+        <!-- ========== FASE 2: Mini-juego Deprovisioning ========== -->
+        <div class="phase-content" id="phase2Content">
+            <div class="timer-container">
+                <div class="timer-label">⏱️ Tiempo para identificar al Exalumno</div>
+                <div class="timer-bar-outer">
+                    <div class="timer-bar-inner" id="timerBar"></div>
+                </div>
+                <div class="timer-digits" id="timerDigits">10.0s</div>
+            </div>
+            <p style="font-size:0.78rem;color:#666;text-align:center;margin:0;">
+                Un <strong>exalumno</strong> con acceso aún activo representa un riesgo crítico.<br>Identifícalo y <strong>revoca su acceso</strong>.
+            </p>
+            <div class="user-list" id="userList"></div>
+            <div class="phase2-feedback" id="phase2Feedback"></div>
+            <button class="btn-continue" id="btnRetryPhase2" style="background:#ff9800;display:none;">🔄 Reintentar Fase 2</button>
+        </div>
+
+        <!-- ========== FASE 3: Desafío Final ========== -->
+        <div class="phase-content" id="phase3Content">
+            <div class="network-diagram-compact">
+                <div class="zone-card-sm zone-it-sm"><span class="zone-icon-sm">🏢</span><span class="zone-label-sm">Red IT</span></div>
+                <span class="connector-sm">⚡➡️</span>
+                <div class="zone-card-sm zone-ot-sm" id="zoneOT"><span class="zone-icon-sm">🏭⚙️</span><span class="zone-label-sm">Planta CNC</span></div>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Sistema en reposo</span>
+            </div>
+            <div class="attack-bar-container">
+                <div class="attack-bar-label">📡 Progreso del Ataque (IT → OT)</div>
+                <div class="attack-bar-outer">
+                    <div class="attack-bar-inner" id="attackBar"></div>
+                </div>
+            </div>
+            <div class="defense-card layer-1" id="defCard1">
+                <span class="defense-icon">🔐</span>
+                <div class="defense-info"><span class="defense-title">Capa 1 · Acceso</span><span class="defense-tech">MFA – Autenticación Multifactor</span></div>
+                <label class="toggle-container layer-1"><input type="checkbox" id="toggleMFA"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="defense-card layer-2" id="defCard2">
+                <span class="defense-icon">🔒</span>
+                <div class="defense-info"><span class="defense-title">Capa 2 · Tránsito</span><span class="defense-tech">TLS – Cifrado E2E</span></div>
+                <label class="toggle-container layer-2"><input type="checkbox" id="toggleTLS"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="defense-card layer-3" id="defCard3">
+                <span class="defense-icon">📜</span>
+                <div class="defense-info"><span class="defense-title">Capa 3 · Hardware</span><span class="defense-tech">PKI – Certificado de Máquina</span></div>
+                <label class="toggle-container layer-3"><input type="checkbox" id="togglePKI"><span class="toggle-slider"></span></label>
+            </div>
+            <button class="btn btn-simulate" id="btnSimulate">🚀 Iniciar Simulación de Ataque</button>
+            <div class="result-area" id="resultArea">
+                <div class="result-icon" id="resultIcon"></div>
+                <div class="result-title" id="resultTitle"></div>
+                <div class="result-detail" id="resultDetail"></div>
+            </div>
+        </div>
+
+        <!-- ========== Resumen Final ========== -->
+        <div class="final-summary" id="finalSummary">
+            <h3>📊 Resumen de la Misión</h3>
+            <div class="score-breakdown" id="scoreBreakdown"></div>
+            <div class="concept-item"><strong>🔐 Responsabilidad Compartida:</strong> La seguridad IT/OT no recae en un solo equipo. TI gestiona identidades; OT protege la planta. Ambos deben coordinar la <strong>baja automatizada</strong> de accesos.</div>
+            <div class="concept-item"><strong>⚠️ Baja Automatizada:</strong> El caso del exalumno demuestra por qué la revocación de acceso debe ser <strong>inmediata y automática</strong> al finalizar una relación laboral o académica.</div>
+            <div class="concept-item"><strong>🛡️ Defensa en Profundidad:</strong> Múltiples capas independientes (Acceso → Tránsito → Hardware) garantizan que un fallo en una no comprometa todo el sistema ciberfísico.</div>
+            <button class="btn btn-reset" id="btnFullReset" style="margin-top:12px;">🔄 Reiniciar Todo</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ==================== AUDIO ====================
+            let audioCtx = null;
+
+            function ensureCtx() {
+                if (!audioCtx) {
+                    try { audioCtx = new(window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
+                }
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                return audioCtx;
+            }
+
+            function playTone(freq, dur, type = 'sine', vol = 0.12, ramp = true) {
+                const ctx = ensureCtx();
+                if (!ctx) return;
+                const t = ctx.currentTime;
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                o.type = type;
+                o.frequency.setValueAtTime(freq, t);
+                g.gain.setValueAtTime(vol, t);
+                if (ramp) g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+                o.connect(g);
+                g.connect(ctx.destination);
+                o.start(t);
+                o.stop(t + dur);
+            }
+
+            function soundChime() { playTone(660, 0.12, 'sine', 0.13);
+                setTimeout(() => playTone(880, 0.14, 'sine', 0.11), 100);
+                setTimeout(() => playTone(1100, 0.16, 'sine', 0.09), 200); }
+
+            function soundError() { playTone(180, 0.3, 'square', 0.15);
+                setTimeout(() => playTone(140, 0.25, 'square', 0.12), 120); }
+
+            function soundAlarm() {
+                const ctx = ensureCtx();
+                if (!ctx) return;
+                const t = ctx.currentTime;
+                for (let i = 0; i < 5; i++) {
+                    const o = ctx.createOscillator();
+                    const g = ctx.createGain();
+                    o.type = 'sawtooth';
+                    o.frequency.setValueAtTime(420, t + i * 0.18);
+                    o.frequency.setValueAtTime(500, t + i * 0.18 + 0.06);
+                    g.gain.setValueAtTime(0.11, t + i * 0.18);
+                    g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.18 + 0.18);
+                    o.connect(g);
+                    g.connect(ctx.destination);
+                    o.start(t + i * 0.18);
+                    o.stop(t + i * 0.18 + 0.18);
+                }
+            }
+
+            function soundClick() { playTone(700, 0.06, 'sine', 0.08); }
+
+            function soundToggle() { playTone(850, 0.05, 'sine', 0.09);
+                setTimeout(() => playTone(1050, 0.04, 'sine', 0.07), 40); }
+
+            function soundPhaseTransition() { playTone(523, 0.14, 'sine', 0.1);
+                setTimeout(() => playTone(659, 0.13, 'sine', 0.09), 130);
+                setTimeout(() => playTone(784, 0.16, 'sine', 0.08), 260); }
+
+            // ==================== ESTADO GLOBAL ====================
+            let totalScore = 0;
+            let currentPhase = 1;
+            let ticketsReviewed = { 1: false, 2: false, 3: false };
+            let phase2Active = false;
+            let phase2TimeLeft = 10;
+            let phase2TimerInterval = null;
+            let phase2Solved = false;
+            let phase2Attempts = 0;
+            let phase3SimRunning = false;
+            let phase3Interval = null;
+            let phase3Progress = 0;
+            let phase3Result = null;
+            let phase3DefensesScored = { mfa: false, tls: false, pki: false };
+
+            // ==================== REFERENCIAS DOM ====================
+            const scoreDisplay = document.getElementById('scoreDisplay');
+            const phase1Content = document.getElementById('phase1Content');
+            const phase2Content = document.getElementById('phase2Content');
+            const phase3Content = document.getElementById('phase3Content');
+            const finalSummary = document.getElementById('finalSummary');
+            const scoreBreakdown = document.getElementById('scoreBreakdown');
+            const btnContinuePhase1 = document.getElementById('btnContinuePhase1');
+            const btnRetryPhase2 = document.getElementById('btnRetryPhase2');
+            const userList = document.getElementById('userList');
+            const timerBar = document.getElementById('timerBar');
+            const timerDigits = document.getElementById('timerDigits');
+            const phase2Feedback = document.getElementById('phase2Feedback');
+            const zoneOT = document.getElementById('zoneOT');
+            const kineticOverlay = document.getElementById('kineticOverlay');
+            const attackBar = document.getElementById('attackBar');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const resultArea = document.getElementById('resultArea');
+            const resultIcon = document.getElementById('resultIcon');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultDetail = document.getElementById('resultDetail');
+            const btnSimulate = document.getElementById('btnSimulate');
+            const toggleMFA = document.getElementById('toggleMFA');
+            const toggleTLS = document.getElementById('toggleTLS');
+            const togglePKI = document.getElementById('togglePKI');
+            const defCard1 = document.getElementById('defCard1');
+            const defCard2 = document.getElementById('defCard2');
+            const defCard3 = document.getElementById('defCard3');
+            const phaseDot1 = document.getElementById('phaseDot1');
+            const phaseDot2 = document.getElementById('phaseDot2');
+            const phaseDot3 = document.getElementById('phaseDot3');
+            const connector1 = document.getElementById('connector1');
+            const connector2 = document.getElementById('connector2');
+            const phaseLabel1 = document.getElementById('phaseLabel1');
+            const phaseLabel2 = document.getElementById('phaseLabel2');
+            const phaseLabel3 = document.getElementById('phaseLabel3');
+
+            // ==================== ACTUALIZAR SCORE ====================
+            function addScore(pts) {
+                totalScore += pts;
+                scoreDisplay.textContent = totalScore;
+                scoreDisplay.classList.remove('pulse');
+                void scoreDisplay.offsetWidth;
+                scoreDisplay.classList.add('pulse');
+            }
+
+            // ==================== ACTUALIZAR DASHBOARD ====================
+            function updateDashboard() {
+                phaseDot1.className = 'phase-dot';
+                phaseDot2.className = 'phase-dot';
+                phaseDot3.className = 'phase-dot';
+                connector1.className = 'phase-connector';
+                connector2.className = 'phase-connector';
+                phaseLabel1.className = 'phase-label-mini';
+                phaseLabel2.className = 'phase-label-mini';
+                phaseLabel3.className = 'phase-label-mini';
+
+                if (currentPhase === 1) {
+                    phaseDot1.classList.add('active');
+                    phaseLabel1.classList.add('highlight');
+                } else if (currentPhase === 2) {
+                    phaseDot1.classList.add('completed');
+                    connector1.classList.add('done');
+                    phaseDot2.classList.add('active');
+                    phaseLabel2.classList.add('highlight');
+                } else if (currentPhase === 3) {
+                    phaseDot1.classList.add('completed');
+                    phaseDot2.classList.add('completed');
+                    connector1.classList.add('done');
+                    connector2.classList.add('done');
+                    phaseDot3.classList.add('active');
+                    phaseLabel3.classList.add('highlight');
+                }
+                if (phase3Result === 'success' || phase3Result === 'failure') {
+                    phaseDot3.classList.remove('active');
+                    phaseDot3.classList.add(phase3Result === 'success' ? 'completed' : 'completed');
+                    if (phase3Result === 'failure') phaseDot3.style.background = '#e53935';
+                }
+            }
+
+            // ==================== CAMBIO DE FASE ====================
+            function showPhase(phase) {
+                currentPhase = phase;
+                phase1Content.classList.remove('visible');
+                phase2Content.classList.remove('visible');
+                phase3Content.classList.remove('visible');
+                finalSummary.classList.remove('visible');
+
+                if (phase === 1) phase1Content.classList.add('visible');
+                if (phase === 2) phase2Content.classList.add('visible');
+                if (phase === 3) phase3Content.classList.add('visible');
+                updateDashboard();
+            }
+
+            // ==================== FASE 1: TICKETS ====================
+            document.querySelectorAll('.btn-ticket').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const ticketId = parseInt(this.dataset.ticket);
+                    if (ticketsReviewed[ticketId]) return;
+                    ticketsReviewed[ticketId] = true;
+                    const card = document.getElementById('ticket' + ticketId);
+                    card.classList.add('reviewed');
+                    this.disabled = true;
+                    this.textContent = '✓ Completado';
+                    soundClick();
+                    checkAllTickets();
+                });
+            });
+
+            function checkAllTickets() {
+                if (ticketsReviewed[1] && ticketsReviewed[2] && ticketsReviewed[3]) {
+                    btnContinuePhase1.classList.add('show');
+                    soundChime();
+                }
+            }
+
+            btnContinuePhase1.addEventListener('click', function() {
+                if (!(ticketsReviewed[1] && ticketsReviewed[2] && ticketsReviewed[3])) return;
+                soundPhaseTransition();
+                initPhase2();
+                showPhase(2);
+            });
+
+            // ==================== FASE 2: DEPROVISIONING ====================
+            const baseUsers = [
+                { id: 'u1', name: 'María García', role: 'Ingeniera de Planta', status: 'active',
+                    statusLabel: 'Activo', avatar: '👩‍🔧', isTarget: false },
+                { id: 'u2', name: 'Carlos López', role: 'Operario CNC Senior', status: 'active',
+                    statusLabel: 'Activo', avatar: '👨‍🏭', isTarget: false },
+                { id: 'u3', name: 'Juan Martínez', role: 'Programa de Prácticas 2023', status: 'suspicious',
+                    statusLabel: 'Activo', avatar: '🎓', isTarget: true },
+                { id: 'u4', name: 'Ana Torres', role: 'Supervisora de Turno', status: 'active', statusLabel: 'Activo',
+                    avatar: '👩‍💼', isTarget: false },
+                { id: 'u5', name: 'Pedro Ruiz', role: 'Técnico de Mantenimiento', status: 'active',
+                    statusLabel: 'Activo', avatar: '👨‍🔧', isTarget: false },
+                { id: 'u6', name: 'Laura Díaz', role: 'Administradora de Red IT', status: 'active',
+                    statusLabel: 'Activo', avatar: '👩‍💻', isTarget: false },
+            ];
+
+            function shuffleUsers() {
+                const arr = [...baseUsers];
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                return arr;
+            }
+
+            function buildUserList(users) {
+                userList.innerHTML = '';
+                users.forEach(u => {
+                    const card = document.createElement('div');
+                    card.className = 'user-card';
+                    card.dataset.userId = u.id;
+                    card.dataset.isTarget = u.isTarget ? '1' : '0';
+                    card.innerHTML = `
+                <div class="user-avatar">${u.avatar}</div>
+                <div class="user-info">
+                  <div class="user-name">${u.name}</div>
+                  <div class="user-role">${u.role}</div>
+                </div>
+                <span class="user-status ${u.status === 'suspicious' ? 'status-suspicious' : 'status-active'}">${u.statusLabel}</span>
+                <button class="btn-revoke-small" data-action="revoke" data-user-id="${u.id}">⚠️ Revocar</button>
+              `;
+                    userList.appendChild(card);
+                });
+
+                // Event listeners para botones de revocar
+                userList.querySelectorAll('.btn-revoke-small').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        if (!phase2Active || phase2Solved) return;
+                        const uid = this.dataset.userId;
+                        const card = this.closest('.user-card');
+                        const isTarget = card.dataset.isTarget === '1';
+                        handleRevokeAttempt(card, isTarget);
+                    });
+                });
+            }
+
+            function handleRevokeAttempt(card, isTarget) {
+                if (!phase2Active || phase2Solved) return;
+                phase2Attempts++;
+                if (isTarget) {
+                    // ¡Correcto!
+                    phase2Solved = true;
+                    clearInterval(phase2TimerInterval);
+                    phase2Active = false;
+                    card.classList.add('correct-flash');
+                    disableAllRevokeButtons();
+                    const speedBonus = Math.max(0, Math.floor(phase2TimeLeft * 10)); // hasta 100 pts
+                    const earned = 200 + speedBonus;
+                    addScore(earned);
+                    phase2Feedback.textContent = `✅ ¡Correcto! Juan Martínez era el exalumno. +${earned} pts (${200} base + ${speedBonus} velocidad). La baja automatizada habría prevenido esto.`;
+                    phase2Feedback.className = 'phase2-feedback success show';
+                    btnRetryPhase2.style.display = 'none';
+                    soundChime();
+                    // Avanzar a fase 3 tras breve pausa
+                    setTimeout(() => {
+                        soundPhaseTransition();
+                        initPhase3();
+                        showPhase(3);
+                    }, 1800);
+                } else {
+                    // Incorrecto
+                    card.classList.add('selected-wrong');
+                    phase2TimeLeft = Math.max(0, phase2TimeLeft - 2);
+                    soundError();
+                    phase2Feedback.textContent =
+                        `❌ Usuario legítimo. -2s de penalización. Busca al exalumno con acceso indebido.`;
+                    phase2Feedback.className = 'phase2-feedback error show';
+                    setTimeout(() => {
+                        card.classList.remove('selected-wrong');
+                        phase2Feedback.className = 'phase2-feedback';
+                    }, 900);
+                    if (phase2TimeLeft <= 0) {
+                        endPhase2Timeout();
+                    }
+                }
+            }
+
+            function disableAllRevokeButtons() {
+                userList.querySelectorAll('.btn-revoke-small').forEach(b => b.disabled = true);
+            }
+
+            function endPhase2Timeout() {
+                clearInterval(phase2TimerInterval);
+                phase2Active = false;
+                phase2Solved = false;
+                disableAllRevokeButtons();
+                phase2Feedback.textContent =
+                    '⏰ Tiempo agotado. Sin baja automatizada, las identidades olvidadas son puertas traseras permanentes.';
+                phase2Feedback.className = 'phase2-feedback error show';
+                btnRetryPhase2.style.display = 'block';
+                btnRetryPhase2.textContent = '🔄 Reintentar Fase 2';
+                soundError();
+            }
+
+            function initPhase2() {
+                phase2Solved = false;
+                phase2Active = true;
+                phase2TimeLeft = 10;
+                phase2Attempts = 0;
+                phase2Feedback.className = 'phase2-feedback';
+                phase2Feedback.textContent = '';
+                btnRetryPhase2.style.display = 'none';
+                const shuffled = shuffleUsers();
+                buildUserList(shuffled);
+                timerBar.style.width = '100%';
+                timerBar.classList.remove('warning', 'danger');
+                timerDigits.textContent = '10.0s';
+                startPhase2Timer();
+            }
+
+            function startPhase2Timer() {
+                clearInterval(phase2TimerInterval);
+                const startTime = Date.now();
+                const totalMs = 10000;
+                phase2TimerInterval = setInterval(() => {
+                    const elapsed = Date.now() - startTime;
+                    const remaining = Math.max(0, totalMs - elapsed);
+                    phase2TimeLeft = remaining / 1000;
+                    const pct = (remaining / totalMs) * 100;
+                    timerBar.style.width = pct + '%';
+                    timerBar.classList.remove('warning', 'danger');
+                    if (phase2TimeLeft <= 3) timerBar.classList.add('danger');
+                    else if (phase2TimeLeft <= 5.5) timerBar.classList.add('warning');
+                    timerDigits.textContent = phase2TimeLeft.toFixed(1) + 's';
+                    if (remaining <= 0) {
+                        endPhase2Timeout();
+                    }
+                }, 80);
+            }
+
+            btnRetryPhase2.addEventListener('click', function() {
+                soundClick();
+                initPhase2();
+            });
+
+            // ==================== FASE 3: DESAFÍO FINAL ====================
+            function allDefensesOn() { return toggleMFA.checked && toggleTLS.checked && togglePKI.checked; }
+
+            function updateDefenseStyles() {
+                defCard1.classList.toggle('defense-active', toggleMFA.checked);
+                defCard2.classList.toggle('defense-active', toggleTLS.checked);
+                defCard3.classList.toggle('defense-active', togglePKI.checked);
+            }
+
+            function resetPhase3UI() {
+                attackBar.style.width = '0%';
+                attackBar.classList.remove('defended');
+                statusDot.className = 'status-dot';
+                statusText.textContent = 'Sistema en reposo';
+                resultArea.className = 'result-area';
+                resultArea.style.display = 'none';
+                zoneOT.classList.remove('kinetic-shake');
+                kineticOverlay.classList.remove('active');
+                phase3Result = null;
+                phase3DefensesScored = { mfa: false, tls: false, pki: false };
+                btnSimulate.disabled = false;
+                updateDefenseStyles();
+            }
+
+            function initPhase3() {
+                toggleMFA.checked = false;
+                toggleTLS.checked = false;
+                togglePKI.checked = false;
+                phase3SimRunning = false;
+                phase3Progress = 0;
+                phase3Result = null;
+                phase3DefensesScored = { mfa: false, tls: false, pki: false };
+                clearInterval(phase3Interval);
+                resetPhase3UI();
+                finalSummary.classList.remove('visible');
+            }
+
+            function scoreDefense(layer) {
+                if (!phase3DefensesScored[layer]) {
+                    phase3DefensesScored[layer] = true;
+                    addScore(50);
+                }
+            }
+
+            function triggerKineticFailure() {
+                clearInterval(phase3Interval);
+                phase3SimRunning = false;
+                phase3Result = 'failure';
+                btnSimulate.disabled = false;
+                attackBar.style.width = '100%';
+                attackBar.classList.remove('defended');
+                zoneOT.classList.add('kinetic-shake');
+                kineticOverlay.classList.add('active');
+                statusDot.className = 'status-dot danger';
+                statusText.textContent = '🔴 ATAQUE KINÉTICO';
+                resultArea.className = 'result-area visible failure';
+                resultIcon.textContent = '💥';
+                resultTitle.textContent = '¡Ataque Kinético Exitoso!';
+                resultDetail.textContent =
+                    'El ataque lógico atravesó las defensas y causó daño físico real en la máquina CNC. Un error de ciberseguridad se tradujo en destrucción material.';
+                soundAlarm();
+                updateDashboard();
+                setTimeout(() => { zoneOT.classList.remove('kinetic-shake');
+                    kineticOverlay.classList.remove('active'); }, 2500);
+                setTimeout(showFinalSummary, 2800);
+            }
+
+            function triggerDefenseSuccess() {
+                clearInterval(phase3Interval);
+                phase3SimRunning = false;
+                phase3Result = 'success';
+                btnSimulate.disabled = false;
+                attackBar.classList.add('defended');
+                statusDot.className = 'status-dot success-flash';
+                statusText.textContent = '✅ Sistema Protegido';
+                resultArea.className = 'result-area visible success';
+                resultIcon.textContent = '🛡️';
+                resultTitle.textContent = '¡Defensa Exitosa!';
+                resultDetail.textContent =
+                    'Las tres capas de defensa en profundidad detuvieron el ataque. La infraestructura crítica permanece segura.';
+                addScore(100); // Bonus por éxito
+                soundChime();
+                updateDashboard();
+                zoneOT.classList.remove('kinetic-shake');
+                kineticOverlay.classList.remove('active');
+                setTimeout(showFinalSummary, 2000);
+            }
+
+            function startPhase3Sim() {
+                if (phase3SimRunning) return;
+                resetPhase3UI();
+                phase3SimRunning = true;
+                phase3Progress = 0;
+                phase3Result = null;
+                phase3DefensesScored = { mfa: false, tls: false, pki: false };
+                btnSimulate.disabled = true;
+                statusDot.className = 'status-dot warning';
+                statusText.textContent = '⚠️ Ataque en curso...';
+                attackBar.style.width = '0%';
+                attackBar.classList.remove('defended');
+                resultArea.className = 'result-area';
+                resultArea.style.display = 'none';
+                zoneOT.classList.remove('kinetic-shake');
+                kineticOverlay.classList.remove('active');
+                finalSummary.classList.remove('visible');
+                updateDashboard();
+
+                const totalDur = 4200;
+                const intervalMs = 50;
+                const steps = totalDur / intervalMs;
+                const inc = 100 / steps;
+                let step = 0;
+                clearInterval(phase3Interval);
+                phase3Interval = setInterval(() => {
+                    step++;
+                    phase3Progress = Math.min(100, step * inc);
+                    attackBar.style.width = phase3Progress + '%';
+
+                    // Puntuar defensas activadas
+                    if (toggleMFA.checked) scoreDefense('mfa');
+                    if (toggleTLS.checked) scoreDefense('tls');
+                    if (togglePKI.checked) scoreDefense('pki');
+
+                    if (allDefensesOn()) {
+                        triggerDefenseSuccess();
+                        return;
+                    }
+                    if (phase3Progress >= 100) {
+                        triggerKineticFailure();
+                    }
+                }, intervalMs);
+            }
+
+            function showFinalSummary() {
+                finalSummary.classList.add('visible');
+                let breakdown = '<strong>Desglose de puntaje:</strong><br>';
+                breakdown +=
+                    `• Fase 2 – Identificación del exalumno: ${phase2Solved ? '✅ Completada' : '❌ No superada'}<br>`;
+                breakdown += `• Fase 3 – Defensas activadas: MFA ${toggleMFA.checked ? '✅' : '❌'} | TLS ${toggleTLS.checked ? '✅' : '❌'} | PKI ${togglePKI.checked ? '✅' : '❌'}<br>`;
+                breakdown += `• Bonus por defensa completa: ${phase3Result === 'success' ? '+100 pts' : 'No obtenido'}<br>`;
+                breakdown += `<strong>🏆 Puntaje Total: ${totalScore} pts</strong>`;
+                scoreBreakdown.innerHTML = breakdown;
+                updateDashboard();
+                // Scroll hacia el resumen
+                finalSummary.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            // Eventos de toggles Fase 3
+            [toggleMFA, toggleTLS, togglePKI].forEach(t => {
+                t.addEventListener('change', function() {
+                    updateDefenseStyles();
+                    soundToggle();
+                    if (phase3SimRunning && allDefensesOn()) {
+                        triggerDefenseSuccess();
+                    }
+                });
+            });
+
+            btnSimulate.addEventListener('click', function() {
+                ensureCtx();
+                soundClick();
+                startPhase3Sim();
+            });
+
+            document.getElementById('btnFullReset').addEventListener('click', function() {
+                ensureCtx();
+                soundPhaseTransition();
+                fullReset();
+            });
+
+            // ==================== REINICIO TOTAL ====================
+            function fullReset() {
+                clearInterval(phase2TimerInterval);
+                clearInterval(phase3Interval);
+                totalScore = 0;
+                currentPhase = 1;
+                ticketsReviewed = { 1: false, 2: false, 3: false };
+                phase2Active = false;
+                phase2Solved = false;
+                phase2TimeLeft = 10;
+                phase2Attempts = 0;
+                phase3SimRunning = false;
+                phase3Progress = 0;
+                phase3Result = null;
+                phase3DefensesScored = { mfa: false, tls: false, pki: false };
+                scoreDisplay.textContent = '0';
+                toggleMFA.checked = false;
+                toggleTLS.checked = false;
+                togglePKI.checked = false;
+                updateDefenseStyles();
+                resetPhase3UI();
+                zoneOT.classList.remove('kinetic-shake');
+                kineticOverlay.classList.remove('active');
+                finalSummary.classList.remove('visible');
+                resultArea.className = 'result-area';
+                resultArea.style.display = 'none';
+                phase2Feedback.className = 'phase2-feedback';
+                phase2Feedback.textContent = '';
+                btnRetryPhase2.style.display = 'none';
+                btnContinuePhase1.classList.remove('show');
+                document.querySelectorAll('.ticket-card').forEach(c => c.classList.remove('reviewed'));
+                document.querySelectorAll('.btn-ticket').forEach(b => { b.disabled = false;
+                    b.textContent = '✓ Entendido'; });
+                timerBar.style.width = '100%';
+                timerBar.classList.remove('warning', 'danger');
+                timerDigits.textContent = '10.0s';
+                userList.innerHTML = '';
+                attackBar.style.width = '0%';
+                attackBar.classList.remove('defended');
+                statusDot.className = 'status-dot';
+                statusText.textContent = 'Sistema en reposo';
+                showPhase(1);
+                updateDashboard();
+            }
+
+            // ==================== INICIALIZACIÓN ====================
+            function init() {
+                fullReset();
+                showPhase(1);
+                updateDashboard();
+            }
+
+            init();
+
+            console.log('🛡️ Industrial Shield Gamificado – Listo.');
+            console.log('   Fase 1: Lee los 3 tickets de concepto.');
+            console.log('   Fase 2: Identifica al exalumno en <10s.');
+            console.log('   Fase 3: Defiende la planta del ataque kinético.');
+            console.log('   🏆 ¡Acumula puntos y aprende defensa en profundidad!');
+        })();
+    </script>
+</body>
+</html>
